@@ -1,15 +1,19 @@
 package com.example.demo.mina.protocol;
-
-import com.example.demo.mina.entity.Message;
 import com.example.demo.mina.entity.MinaConstant;
+
+
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.CumulativeProtocolDecoder;
-import org.apache.mina.filter.codec.ProtocolDecoder;
 import org.apache.mina.filter.codec.ProtocolDecoderOutput;
+
 
 import java.nio.charset.Charset;
 
+
+/*
+处理半包，粘包问题
+ */
 public class JT808ProtocolDecoder  extends CumulativeProtocolDecoder {
     private final Charset charset;
 
@@ -24,33 +28,49 @@ public class JT808ProtocolDecoder  extends CumulativeProtocolDecoder {
     protected boolean doDecode(IoSession ioSession, IoBuffer ioBuffer, ProtocolDecoderOutput out) throws Exception {
 
         System.out.println("进入解码器1");
-        //标记，便于重置
         ioBuffer.mark();
-        //
+        int count=0;
+
+        IoBuffer ioBuffer1 = IoBuffer.allocate(10).setAutoExpand(true);
+        while(ioBuffer.remaining()>0){
+            byte b=ioBuffer.get();
+            ioBuffer1.put(b);
+            if(b== MinaConstant.BYTE_7E){
+                count++;
+            }
+            if(count%2==0){
+
+                ioBuffer1.flip();
+                byte[] bytes1=ioBufferToBytes(ioBuffer1);
+             //   System.out.println("接收到的数据为：");
+               // for (int i = 0; i < bytes1.length; i++)
+                   // System.out.print(Integer.toHexString(bytes1[i] & 0xff) + " ");
+                byte[] bytes=recoverData(bytes1);
+                IoBuffer ioBuffer2=bytesToIobuffer(bytes);
+               // System.out.println("还原后的数据为：");
+                //for (int i = 0; i < bytes.length; i++)
+                   // System.out.print(Integer.toHexString(bytes[i] & 0xff) + " ");
+              //  System.out.println("remain"+ioBuffer2.remaining());
+                ioBuffer1.flip();
+                out.write(ioBuffer2);
+            }
+
+        }
+        if(count%2==0) return  true;
+
+        ioBuffer.reset();
+        return false;
 
 
 
 
-
-        byte[] bytes=ioBufferToBytes(ioBuffer);
-        IoBuffer ioBuffer1=IoBuffer.allocate(10).setAutoExpand(true);
-        ioBuffer1.put(bytes);
-        ioBuffer1.flip();
-        out.write(ioBuffer1);
-        return true;
-    }
-
-    // 构造方法注入编码格式
-
-    private byte[] ioBufferToBytes(IoBuffer ioBuffer) {
-        byte[] bytes = new byte[ioBuffer.remaining()];
-        ioBuffer.get(bytes);
-        return bytes;
     }
     private byte[] recoverData(byte[] bytes) {
-        IoBuffer ioBuffer = IoBuffer.allocate(10).setAutoExpand(true);
+
+        IoBuffer ioBuffer2 = IoBuffer.allocate(10).setAutoExpand(true);
         int length = bytes.length;
         if (length <= 0) {
+            System.out.println("bytesnull");
             return null;
         }
         byte[] bs =bytes;
@@ -68,7 +88,7 @@ public class JT808ProtocolDecoder  extends CumulativeProtocolDecoder {
                         oldCheckByte = MinaConstant.BYTE_7D;
                     }
                     else {
-                        ioBuffer.put(MinaConstant.BYTE_7D);
+                        ioBuffer2.put(MinaConstant.BYTE_7D);
                         checkByte ^= MinaConstant.BYTE_7D;
                     }
                 }
@@ -77,7 +97,7 @@ public class JT808ProtocolDecoder  extends CumulativeProtocolDecoder {
                         oldCheckByte = MinaConstant.BYTE_7E;
                     }
                     else {
-                        ioBuffer.put(MinaConstant.BYTE_7E);
+                        ioBuffer2.put(MinaConstant.BYTE_7E);
                         checkByte ^= MinaConstant.BYTE_7E;
                     }
                 }
@@ -90,7 +110,7 @@ public class JT808ProtocolDecoder  extends CumulativeProtocolDecoder {
             }
             checkByte ^= b;
 
-            ioBuffer.put(b);
+            ioBuffer2.put(b);
 
         }
 
@@ -100,9 +120,26 @@ public class JT808ProtocolDecoder  extends CumulativeProtocolDecoder {
         }
         else {
             System.out.println("数据验证通过");
-            ioBuffer.flip();
+            ioBuffer2.flip();
 
         }
-        return ioBufferToBytes(ioBuffer);
+        return ioBufferToBytes(ioBuffer2);
     }
+    //转字节数组
+    private byte[] ioBufferToBytes(IoBuffer ioBuffer3) {
+        byte[] bytes = new byte[ioBuffer3.remaining()];
+        ioBuffer3.get(bytes);
+        return bytes;
+    }
+    //byte[]转buffer
+    private IoBuffer bytesToIobuffer(byte[] bytes) {
+        IoBuffer ioBuffer=IoBuffer.allocate(10).setAutoExpand(true);
+        for(byte b:bytes){
+            ioBuffer.put(b);
+        }
+        ioBuffer.flip();
+
+        return ioBuffer;
+    }
+
 }

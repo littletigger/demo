@@ -3,6 +3,7 @@ package com.example.demo.mina.entity;
 
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * @author ruanwenjiang
@@ -33,16 +34,16 @@ public class PackageData implements Serializable {
      * 设备标识
      */
     private String target;
-
+    /**
+     * 消息流水号
+     */
+    private short msgNum;
     /**
      * 消息体
      */
     private byte[] body;
 
-    /**
-     * 消息流水号
-     */
-    private short msgNum;
+
 
     public short getMsgId() {
         return msgId;
@@ -92,6 +93,7 @@ public class PackageData implements Serializable {
         this.msgNum = msgNum;
     }
 
+
     @Override
     public String toString() {
         return "PackageData{" +
@@ -99,8 +101,8 @@ public class PackageData implements Serializable {
                 ", source=" + source +
                 ", encryp=" + encryp +
                 ", target='" + target + '\'' +
-                ", body=" + body +
                 ", msgNum=" + msgNum +
+                ", body=" + Arrays.toString(body) +
                 '}';
     }
 }

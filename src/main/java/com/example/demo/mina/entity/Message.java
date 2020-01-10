@@ -17,6 +17,10 @@ public class Message {
     private short msgId;
 
     /**
+     * 消息体属性
+     */
+    private short bodyAttr;
+    /**
      * 消息流水号
      */
     private short msgNum;
@@ -41,6 +45,8 @@ public class Message {
 
     private int length;
 
+
+
     /**
      * 是否分包
      */
@@ -48,14 +54,16 @@ public class Message {
     /**
      * 包序号(当isPkg为true)
      */
-    private int pkgNum;
+    private short pkgNum;
     /**
      * 包数量(当isPkg为true)
      */
-    private int totalPkg;
+    private short totalPkg;
+
+    public Message(){}
 
 
-    public Message(short msgId,short msgNum, byte[] body) {
+    public Message(short msgId, short msgNum, String target, short bodyLen, byte[] body) {
         this.msgId = msgId;
         this.body = body;
         this.msgNum=msgNum;
@@ -76,19 +84,19 @@ public class Message {
         isPkg = pkg;
     }
 
-    public int getPkgNum() {
+    public short getPkgNum() {
         return pkgNum;
     }
 
-    public void setPkgNum(int pkgNum) {
+    public void setPkgNum(short pkgNum) {
         this.pkgNum = pkgNum;
     }
 
-    public int getTotalPkg() {
+    public short getTotalPkg() {
         return totalPkg;
     }
 
-    public void setTotalPkg(int totalPkg) {
+    public void setTotalPkg(short totalPkg) {
         this.totalPkg = totalPkg;
     }
     public short getMsgNum() {
@@ -112,6 +120,13 @@ public class Message {
     public void setMsgId(short msgId) {
         this.msgId = msgId;
     }
+    public short getBodyAttr() {
+        return bodyAttr;
+    }
+
+    public void setBodyAttr(short bodyAttr) {
+        this.bodyAttr = bodyAttr;
+    }
 
 
     public byte[] getBody() {
@@ -132,8 +147,14 @@ public class Message {
     public String toString() {
         return "Message{" +
                 "msgId=" + msgId +
+                ", msgNum=" + msgNum +
+                ", target='" + target + '\'' +
                 ", body=" + Arrays.toString(body) +
+                ", bodyLen=" + bodyLen +
                 ", length=" + length +
+                ", isPkg=" + isPkg +
+                ", pkgNum=" + pkgNum +
+                ", totalPkg=" + totalPkg +
                 '}';
     }
 }

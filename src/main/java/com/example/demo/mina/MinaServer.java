@@ -1,5 +1,6 @@
 package com.example.demo.mina;
 
+import com.example.demo.mina.entity.MinaConstant;
 import com.example.demo.mina.protocol.JT808WrapperEncoder;
 import com.example.demo.mina.protocol.Test2ProtocolCodecFactory;
 import com.example.demo.mina.protocol.TestProtocolCodecFactory;
@@ -16,7 +17,7 @@ import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 
 public class MinaServer {
-    static int PORT=7074;
+    static int PORT= MinaConstant.HOST_PORT;
     static IoAcceptor acceptor=null;
 
     public static void main(String[] args) throws IOException {

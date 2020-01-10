@@ -1,16 +1,23 @@
 package com.example.demo.mina.protocol;
 
-import ch.qos.logback.core.net.SyslogOutputStream;
 import com.example.demo.mina.entity.Message;
-import com.example.demo.mina.entity.MinaConstant;
+
+import com.example.demo.mina.entity.PackageData;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.CumulativeProtocolDecoder;
+import org.apache.mina.filter.codec.ProtocolDecoderAdapter;
 import org.apache.mina.filter.codec.ProtocolDecoderOutput;
+import org.apache.mina.filter.codec.ProtocolEncoderAdapter;
+
 
 import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Map;
+//合包
 
-public class TestProtocolDecoder extends CumulativeProtocolDecoder {
+public class TestProtocolDecoder extends ProtocolDecoderAdapter {
+    private Map<Short, PackageBuf> mMap;
     private final Charset charset;
 
     public TestProtocolDecoder() {
@@ -22,144 +29,138 @@ public class TestProtocolDecoder extends CumulativeProtocolDecoder {
         this.charset = charset;
     }
 
-    @Override
-    protected boolean doDecode(IoSession ioSession, IoBuffer ioBuffer, ProtocolDecoderOutput out) throws Exception {
 
-        System.out.println("进入解码器2：");
 
-        byte[] bytes = ioBufferToBytes(ioBuffer);
-        if (bytes != null) {
-            System.out.println("接受到的数据为：");
-            for (int i = 0; i < bytes.length; i++)
-                System.out.print(Integer.toHexString(bytes[i] & 0xff) + " ");
-            byte[] bytes2 = recoverData(bytes);
-            System.out.println("还原后的数据为：");
-            for (int i = 0; i < bytes2.length; i++)
-                System.out.print(Integer.toHexString(bytes2[i] & 0xff) + " ");
-            byte[] bytes1=new byte[2];
-            bytes1[0]=bytes2[0];
-            bytes1[1]=bytes2[1];
-            short msgId=byte2short(bytes1);
-            bytes1[0]=bytes2[bytes2.length-1];
-            bytes1[1]=bytes2[bytes2.length-2];
-            short msgNum=byte2short(bytes1);
-
-            Message message=new Message(msgId,msgNum,bytes2);
-            System.out.println("message"+message);
-
-            ioBuffer.flip();
-            out.write(bytes2);
-            return true;
-        }
-
-        if (ioBuffer.remaining() < 6) {
-            return false;
-        }
-        if (ioBuffer.remaining() > 1) {
-            // 标记设为当前
-            ioBuffer.mark();
-            // 获取总长度
-            int length = ioBuffer.getInt(ioBuffer.position());
-            // 如果可读取数据的长度 小于 总长度 - 包头的长度 ，则结束拆包，等待下一次
-            if (ioBuffer.remaining() < (length - 6)) {
-                ioBuffer.reset();
-                return false;
-            } else {
-                // 重置，并读取一条完整记录
-                ioBuffer.reset();
-                short msgId = ioBuffer.getShort();
-                short msgNum = ioBuffer.getShort();
-                byte[] bytes1 = new byte[3];
-                // 获取长度4个字节、版本1个字节、内容
-                ioBuffer.get(bytes);
-                // 封装为自定义的java对象
-                Message pack = new Message(msgId, msgNum, bytes);
-                out.write(pack);
-                // 如果读取一条记录后，还存在数据（粘包），则再次进行调用
-                return ioBuffer.remaining() > 0;
-            }
-
-        }
-        return false;
-
-    }
-
-    //byte[]转short
-    public static short byte2short(byte[] b){
-        short l = 0;
-        for (int i = 0; i < 2; i++) {
-            l<<=8; //<<=和我们的 +=是一样的，意思就是 l = l << 8
-            l |= (b[i] & 0xff); //和上面也是一样的  l = l | (b[i]&0xff)
-        }
-        return l;
-    }
     //转字节数组
     private byte[] ioBufferToBytes(IoBuffer ioBuffer) {
         byte[] bytes = new byte[ioBuffer.remaining()];
         ioBuffer.get(bytes);
         return bytes;
     }
-    //转义还原、验证校验码
 
-    private byte[] recoverData(byte[] bytes) {
-        IoBuffer ioBuffer = IoBuffer.allocate(10).setAutoExpand(true);
-        int length = bytes.length;
-        if (length <= 0) {
-            return null;
+    @Override
+    public void decode(IoSession ioSession, IoBuffer ioBuffer, ProtocolDecoderOutput out) throws Exception {
+        System.out.println("进入解码器2：");
+        short pkgNum = 0;
+        short totalPkg = 0;
+        byte[] targeByte = new byte[12];
+        short msgId = ioBuffer.getShort();
+        short bodyAttr=ioBuffer.getShort();
+        ioBuffer.get(targeByte);
+        short msgNum = ioBuffer.getShort();
+        /**
+         * 此处我们通过与运算对消息体属性进行解析：
+         * 具体消息体属性的解析方式需参看数据的封装方式见
+         */
+        short bodyLen = (short) (bodyAttr & 0x03FF);
+        short encryp = (short) ((bodyAttr & 0x1C00) >> 10);
+        boolean isPkg = ((bodyAttr & 0x2000) >> 13) != 0;
+
+        if (isPkg) {
+            totalPkg = ioBuffer.getShort();
+            System.out.println("totalPkg" + totalPkg);
+
+            pkgNum = ioBuffer.getShort();
+            System.out.println("pkgNum" + pkgNum);
         }
-        byte[] bs =bytes;
+        byte[] body = new byte[ioBuffer.remaining()];
+        ioBuffer.get(body);
+        String target = new String(targeByte).trim();
+        System.out.println("手机号为----" + target);
+        //ioBuffer.flip();
+        if (!isPkg) {
+            System.out.println("没有分包");
+            PackageData  data=new PackageData();
+            data.setBody(body);
+            data.setEncryp(encryp);
+            data.setMsgId(msgId);
+            data.setMsgNum(msgNum);
+            data.setTarget(target);
+            out.write(data);
+            return;
 
-        byte checkByte = 0;
-        byte oldCheckByte = bs[bs.length - 2];
-
-        for (int i = 1; i < bs.length-2; i++) {
-            byte b = bs[i];
-            if (b == MinaConstant.BYTE_7D) {//遍历到转义的数据
-                i++;
-                b = bs[i];
-                if (b == MinaConstant.BYTE_01) {//数据为0x7d01--->原数据为7d
-                    if (i == (bs.length - 2)) {//校验位是特殊字符
-                        oldCheckByte = MinaConstant.BYTE_7D;
-                    }
-                    else {
-                        ioBuffer.put(MinaConstant.BYTE_7D);
-                        checkByte ^= MinaConstant.BYTE_7D;
-                    }
-                }
-                else if (b == MinaConstant.BYTE_02) {//数据为0x7d02--->原数据为7e
-                    if (i == (bs.length - 2)) {//校验位是特殊字符
-                        oldCheckByte = MinaConstant.BYTE_7E;
-                    }
-                    else {
-                        ioBuffer.put(MinaConstant.BYTE_7E);
-                        checkByte ^= MinaConstant.BYTE_7E;
-                    }
-                }
-                else {
-                    //do nothing 理论上程序不可能来到这里，如果程序走到这里表示编码的代码逻辑本身就有问题
-                    return null;
-                }
-                continue;
-
+        }else{
+            System.out.println("合包");
+            if (mMap == null) {
+                mMap = new HashMap<Short,PackageBuf>(totalPkg);
             }
-            checkByte ^= b;
+            Message msg = new Message();
+            msg.setMsgId(msgId);
+            msg.setMsgNum(msgNum);
+            msg.setTarget(target);
+            msg.setBodyLen(bodyLen);
+            msg.setBody(body);
+            msg.setTotalPkg(totalPkg);
+            msg.setPkgNum(pkgNum);
+            System.out.println("..........");
+            if (!mMap.containsKey(msgId)) {
+                System.out.println("进入map");
+                //System.out.println("进入map"+);
+                if (msg.getPkgNum()==1) {
+                    System.out.println("创建buf");
 
-            ioBuffer.put(b);
+                    PackageBuf packageBuf = new PackageBuf(msg.getTotalPkg());
+                    packageBuf.addMessage(msg);
+                    mMap.put(msgId, packageBuf);
+                }
+            } else {
+                System.out.println("添加消息");
+                PackageBuf packageBuf = mMap.get(msgId);
+                int ret = packageBuf.addMessage(msg);
+                if (ret == 0) {
+                    System.out.println("解析对象");
+                    mMap.remove(msgId);
+                    byte[] bodys = packageBuf.getBufArray();
+                    PackageData  data=new PackageData();
+                    data.setBody(bodys);
+                    data.setEncryp(encryp);
+                    data.setMsgId(msgId);
+                    data.setMsgNum(msgNum);
+                    data.setTarget(target);
+                    out.write(data);
+
+                }
+            }
 
         }
 
-        if (checkByte != oldCheckByte) {
-            System.out.println("数据校验码验证不通过！！！！");
-            return null;
-        }
-        else {
-            System.out.println("数据验证通过");
-            ioBuffer.flip();
 
+
+    }
+
+    private class PackageBuf {
+        private int maxSize;
+
+        private IoBuffer byteBufs;
+
+        public PackageBuf(int maxSize) {
+            this.maxSize = maxSize;
+            byteBufs = IoBuffer.allocate(10).setAutoExpand(true);
         }
-        return ioBufferToBytes(ioBuffer);
+
+
+        public int addMessage(Message message) {
+
+
+            //顺序接收
+            byteBufs.put(message.getBody());
+
+            System.out.println("body---");
+            for (int i = 0; i < message.getBody().length; i++)
+                System.out.print(Integer.toHexString(message.getBody()[i] & 0xff) + " ");
+
+
+            //接收完成
+            if (message.getPkgNum() == maxSize) {
+                return 0;
+            }
+            return -1;
+        }
+        public byte[] getBufArray() {
+            byteBufs.flip();
+            byte[] bytes = new byte[byteBufs.remaining()];
+            byteBufs.get(bytes);
+            return bytes;
+        }
     }
 }
-
-
-

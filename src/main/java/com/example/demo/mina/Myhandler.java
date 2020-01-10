@@ -40,10 +40,10 @@ public class Myhandler extends IoHandlerAdapter {
     @Override
     public void messageReceived(IoSession session, Object message)
             throws Exception {
-        byte[] bytes=(byte[]) message;
-        System.out.println("服务端接收到数据");
-        for (int i=0;i<bytes.length;i++)
-            System.out.print( Integer.toHexString(bytes[i]& 0xff)+" ");
+
+        System.out.println("服务端接收到数据"+message.toString());
+        session.write(message);
+
 
 
     }

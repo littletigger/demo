@@ -9,13 +9,13 @@ public final class MinaConstant {
         /*本地服务器地址*/
         public static final String HOST_LOCAL_IP = "";
         /*连接端口号*/
-        public static final int HOST_PORT = 10138;
+        public static final int HOST_PORT = 7055;
 
         /*消息体最大长度,这里就要特别注意了，由于部标808协议用于描述消息体长度只有10个bit，所以消息体的最大长度是不允许大于1023个byte的*/
-        public static final short MAX_BODY_LENGTH = 256;
+        public static final short MAX_BODY_LENGTH =2;
         /*目标长度，不足12个字符前面补0*/
         public static final int TARGET_LENGTH = 12;
-        /*netty缓存池大小*/
+        /*缓存池大小*/
         public static final int MAX_BUFF = Integer.MAX_VALUE;
 
         /*消息标识位*/
