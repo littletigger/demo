@@ -52,6 +52,7 @@ public class JT808WrapperEncoder  extends ProtocolEncoderAdapter {
         for (int i = 1; i < totalPkg; i++) {
 
             Message message1=wrapperMessage(msgId,MinaConstant.MAX_BODY_LENGTH,encryp,rsTarget,msgNum,totalPkg,(short)i,ioBuffer,true);
+
             out.write(message1);
         }
 
@@ -60,6 +61,7 @@ public class JT808WrapperEncoder  extends ProtocolEncoderAdapter {
 
         Message message1=wrapperMessage(msgId,lastBodyLen,encryp,rsTarget,msgNum,totalPkg,totalPkg,ioBuffer,true);
         out.write(message1);
+
         return;
 
 

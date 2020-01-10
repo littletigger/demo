@@ -35,7 +35,7 @@ public class TestProtocolEncoder extends ProtocolEncoderAdapter {
         //System.out.println("转义前数据为：");
        // for (int i=0;i<bytes.length;i++)
         //System.out.print( Integer.toHexString(bytes[i]& 0xff)+" ");
-        byte[] bytes1=ioBufferToBytes(encodeNewByte(bytes));
+        //byte[] bytes1=ioBufferToBytes(encodeNewByte(bytes));
        // System.out.println("转义后数据为：");
        // for (int i=0;i<bytes1.length;i++)
             //System.out.print(Integer.toHexString(bytes1[i]& 0xff)+" ");
@@ -44,7 +44,7 @@ public class TestProtocolEncoder extends ProtocolEncoderAdapter {
 
 
 
-       output.write(encodeNewByte(bytes));
+      output.write(encodeNewByte(bytes));
         //log.info("发送成功");
 
     }

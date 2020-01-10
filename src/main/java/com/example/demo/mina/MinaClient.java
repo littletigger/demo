@@ -43,8 +43,16 @@ public class MinaClient {
         body[2]=0x7e;
         pack.setBody(body);
         session.write(pack);
-        pack.setMsgId((short)200);
-        session.write(pack);
+        PackageData pack2=new PackageData();
+        pack2.setTarget("123456");
+        pack2.setMsgId((short)200);
+        pack2.setEncryp((short)1);
+        byte[] body2=new byte[3];
+        body2[0]=0x7e;
+        body2[1]=0x7e;
+        body2[2]=0x7e;
+        pack2.setBody(body2);
+        session.write(pack2);
         System.out.println("发送完毕");
         session.getCloseFuture().awaitUninterruptibly();
         connector.dispose();
