@@ -39,11 +39,12 @@ public class Message {
      * 消息体长度
      */
     private short bodyLen;
-    /**
+   /* *//**
         消息总长度
-     */
+     *//*
 
     private int length;
+*/
 
 
 
@@ -106,13 +107,13 @@ public class Message {
     public void setMsgNum(short msgNum) {
         this.msgNum = msgNum;
     }
-    public int getLength() {
+ /*   public int getLength() {
         return length;
     }
 
     public void setLength(int length) {
         this.length = length;
-    }
+    }*/
     public short getMsgId() {
         return msgId;
     }
@@ -151,7 +152,7 @@ public class Message {
                 ", target='" + target + '\'' +
                 ", body=" + Arrays.toString(body) +
                 ", bodyLen=" + bodyLen +
-                ", length=" + length +
+              /*  ", length=" + length +*/
                 ", isPkg=" + isPkg +
                 ", pkgNum=" + pkgNum +
                 ", totalPkg=" + totalPkg +

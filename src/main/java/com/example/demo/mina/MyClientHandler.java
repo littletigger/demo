@@ -1,6 +1,8 @@
 package com.example.demo.mina;
 
 import com.example.demo.mina.entity.Message;
+import com.example.demo.mina.entity.PackageData;
+import com.example.demo.mina.util.TxtToJson;
 import com.example.demo.mina.util.writeTxt;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IoSession;
@@ -22,6 +24,7 @@ public class MyClientHandler  extends IoHandlerAdapter {
 
          super.messageSent(session,message);
         System.out.println("客户端发送消息成功：" + message.toString());
+        TxtToJson.transDataToTxt((PackageData)message,"/home/fjkj/sendMessage.txt");
         //writeTxt.output(message);
     }
 

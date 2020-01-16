@@ -43,8 +43,13 @@ public class PackageData implements Serializable {
      */
     private byte[] body;
 
+    public PackageData(short msgId) {
+        this.msgId = msgId;
+    }
 
+    public PackageData() {
 
+    }
     public short getMsgId() {
         return msgId;
     }

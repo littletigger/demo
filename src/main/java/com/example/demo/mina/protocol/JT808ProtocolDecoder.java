@@ -2,10 +2,13 @@ package com.example.demo.mina.protocol;
 import com.example.demo.mina.entity.MinaConstant;
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.CumulativeProtocolDecoder;
 import org.apache.mina.filter.codec.ProtocolDecoderOutput;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 import java.nio.charset.Charset;
@@ -14,9 +17,10 @@ import java.nio.charset.Charset;
 /*
 处理半包，粘包问题
  */
+@Slf4j
 public class JT808ProtocolDecoder  extends CumulativeProtocolDecoder {
     private final Charset charset;
-
+    private final Logger log= LoggerFactory.getLogger("Decoder");
     public JT808ProtocolDecoder() {
         this.charset = Charset.defaultCharset();
     }
@@ -53,12 +57,15 @@ public class JT808ProtocolDecoder  extends CumulativeProtocolDecoder {
               //  System.out.println("remain"+ioBuffer2.remaining());
                 ioBuffer1.flip();
                 out.write(ioBuffer2);
+                log.info("发送到解码器二");
+                return true;
             }
 
         }
-        if(count%2==0) return  true;
+        //if(count%2==0) return  true;
 
         ioBuffer.reset();
+        log.info("断包等待下一包数据");
         return false;
 
 

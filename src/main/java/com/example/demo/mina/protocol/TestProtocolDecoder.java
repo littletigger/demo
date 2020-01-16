@@ -65,11 +65,11 @@ public class TestProtocolDecoder extends ProtocolDecoderAdapter {
         }
         byte[] body = new byte[ioBuffer.remaining()];
         ioBuffer.get(body);
-        String target = new String(targeByte).trim();
-        System.out.println("手机号为----" + target);
+        String target = new String(targeByte).trim().replaceFirst("^0*","");
+        //System.out.println("手机号为----" + target);
         //ioBuffer.flip();
         if (!isPkg) {
-            System.out.println("没有分包");
+            //System.out.println("没有分包");
             PackageData  data=new PackageData();
             data.setBody(body);
             data.setEncryp(encryp);
@@ -80,7 +80,7 @@ public class TestProtocolDecoder extends ProtocolDecoderAdapter {
             return;
 
         }else{
-            System.out.println("合包");
+            //System.out.println("合包");
             if (mMap == null) {
                 mMap = new HashMap<Short,PackageBuf>(totalPkg);
             }
@@ -94,21 +94,21 @@ public class TestProtocolDecoder extends ProtocolDecoderAdapter {
             msg.setPkgNum(pkgNum);
             System.out.println("..........");
             if (!mMap.containsKey(msgId)) {
-                System.out.println("进入map");
+               // System.out.println("进入map");
                 //System.out.println("进入map"+);
                 if (msg.getPkgNum()==1) {
-                    System.out.println("创建buf");
+                    //System.out.println("创建buf");
 
                     PackageBuf packageBuf = new PackageBuf(msg.getTotalPkg());
                     packageBuf.addMessage(msg);
                     mMap.put(msgId, packageBuf);
                 }
             } else {
-                System.out.println("添加消息");
+                //System.out.println("添加消息");
                 PackageBuf packageBuf = mMap.get(msgId);
                 int ret = packageBuf.addMessage(msg);
                 if (ret == 0) {
-                    System.out.println("解析对象");
+                   // System.out.println("解析对象");
                     mMap.remove(msgId);
                     byte[] bodys = packageBuf.getBufArray();
                     PackageData  data=new PackageData();
@@ -145,11 +145,11 @@ public class TestProtocolDecoder extends ProtocolDecoderAdapter {
             //顺序接收
             byteBufs.put(message.getBody());
 
-            System.out.println("body---");
+           /* System.out.println("body---");
             for (int i = 0; i < message.getBody().length; i++)
                 System.out.print(Integer.toHexString(message.getBody()[i] & 0xff) + " ");
 
-
+*/
             //接收完成
             if (message.getPkgNum() == maxSize) {
                 return 0;

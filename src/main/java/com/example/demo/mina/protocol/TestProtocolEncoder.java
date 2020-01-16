@@ -29,8 +29,8 @@ public class TestProtocolEncoder extends ProtocolEncoderAdapter {
     @Override
     public void encode(IoSession ioSession, Object message, ProtocolEncoderOutput output) throws Exception {
 
-        Message msg=(Message)message;
-        byte[] bytes=ioBufferToBytes(wrapperIobuffer(msg.getMsgId(),msg.getBodyAttr(),msg.getTarget(),msg.getMsgNum(),msg.getBody(),msg.isPkg(),msg.getPkgNum(),msg.getTotalPkg()));
+         Message msg=(Message)message;
+         byte[] bytes=ioBufferToBytes(wrapperIobuffer(msg.getMsgId(),msg.getBodyAttr(),msg.getTarget(),msg.getMsgNum(),msg.getBody(),msg.isPkg(),msg.getPkgNum(),msg.getTotalPkg()));
 
         //System.out.println("转义前数据为：");
        // for (int i=0;i<bytes.length;i++)
@@ -44,7 +44,7 @@ public class TestProtocolEncoder extends ProtocolEncoderAdapter {
 
 
 
-      output.write(encodeNewByte(bytes));
+        output.write(encodeNewByte(bytes));
         //log.info("发送成功");
 
     }

@@ -2,23 +2,28 @@ package com.example.demo.mina.protocol;
 import com.example.demo.mina.entity.Message;
 import com.example.demo.mina.entity.MinaConstant;
 import com.example.demo.mina.entity.PackageData;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolEncoderAdapter;
 import org.apache.mina.filter.codec.ProtocolEncoderOutput;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-
+@Slf4j
 public class JT808WrapperEncoder  extends ProtocolEncoderAdapter {
-
+    private final Logger log= LoggerFactory.getLogger("Wrapper");
+    private short msgNum=-1;
     @Override
     public void encode(IoSession ioSession, Object message, ProtocolEncoderOutput out) throws Exception {
-       // System.out.println(o.toString());
+        msgNum++;
         PackageData msg=(PackageData)message;
+        msg.setMsgNum(msgNum);
         byte[] body = msg.getBody();
         int bodyLen = body != null ? body.length : 0;
 
         short msgId = msg.getMsgId();
-        short msgNum=0;
+        //short msgNum=0;
         short encryp = msg.getEncryp();
 
         IoBuffer ioBuffer=IoBuffer.allocate(10).setAutoExpand(true);
@@ -34,6 +39,7 @@ public class JT808WrapperEncoder  extends ProtocolEncoderAdapter {
         if (bodyLen < MinaConstant.MAX_BODY_LENGTH) {
             System.out.println("没有分包");
             Message message1=wrapperMessage(msgId,bodyLen,encryp,rsTarget,msgNum, (short) 1,(short)1,ioBuffer,false);
+            log.info(message1.toString());
             out.write(message1);
             return;
         }
@@ -49,17 +55,21 @@ public class JT808WrapperEncoder  extends ProtocolEncoderAdapter {
         if (totalPkg > 255) throw new Exception("分包总数大于255");
         //分包处理
         System.out.println("开始分包,分成包数："+totalPkg);
+
         for (int i = 1; i < totalPkg; i++) {
 
             Message message1=wrapperMessage(msgId,MinaConstant.MAX_BODY_LENGTH,encryp,rsTarget,msgNum,totalPkg,(short)i,ioBuffer,true);
 
+            log.info(message1.toString());
             out.write(message1);
+
         }
 
 
         //做最后一个包的处理
 
         Message message1=wrapperMessage(msgId,lastBodyLen,encryp,rsTarget,msgNum,totalPkg,totalPkg,ioBuffer,true);
+        log.info(message1.toString());
         out.write(message1);
 
         return;
@@ -96,9 +106,9 @@ public class JT808WrapperEncoder  extends ProtocolEncoderAdapter {
         message.setBodyAttr(bodyAttr);
         byte[] body=new byte[bodyLen];
         ioBuffer.get(body);
-        System.out.println("bodyData---");
-        for (int i=0;i<body.length;i++)
-            System.out.print(Integer.toHexString(body[i]& 0xff)+" ");
+        //System.out.println("bodyData---");
+        //for (int i=0;i<body.length;i++)
+            //System.out.print(Integer.toHexString(body[i]& 0xff)+" ");
         message.setBody(body);
         message.setMsgNum(msgNum);
         message.setTarget(target);
