@@ -11,16 +11,20 @@ import org.apache.mina.core.service.IoAcceptor;
 import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.executor.ExecutorFilter;
 import org.apache.mina.filter.keepalive.KeepAliveFilter;
 import org.apache.mina.filter.keepalive.KeepAliveMessageFactory;
 import org.apache.mina.filter.keepalive.KeepAliveRequestTimeoutHandler;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.rmi.transport.tcp.TCPConnection;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.charset.Charset;
+import java.util.concurrent.Executors;
 
 public class MinaServer {
     static int PORT= MinaConstant.HOST_PORT;
@@ -37,7 +41,9 @@ public class MinaServer {
         //设置 编码解码过滤器
         acceptor.getFilterChain().addLast("first",new ProtocolCodecFilter(new Test2ProtocolCodecFactory(Charset.forName("UTF-8"))));
         acceptor.getFilterChain().addLast("codec",new ProtocolCodecFilter(new TestProtocolCodecFactory(Charset.forName("UTF-8"))));
-
+        // 为IoFilterChain添加线程池
+       /* acceptor.getFilterChain().addLast("threadPool",
+                new ExecutorFilter(Executors.newCachedThreadPool()));*/
         KeepAliveMessageFactory heartBeatFactory = new KeepAliveMessageFactoryImpl();
 
         KeepAliveFilter heartBeat = new KeepAliveFilter(heartBeatFactory,
@@ -53,10 +59,11 @@ public class MinaServer {
 
         acceptor.getSessionConfig().setReadBufferSize(1024);
 
-        acceptor.getSessionConfig().setIdleTime(IdleStatus.BOTH_IDLE,1000);
+        acceptor.getSessionConfig().setIdleTime(IdleStatus.BOTH_IDLE,10);
         acceptor.setHandler(new Myhandler());
         //绑定端口
         acceptor.bind(new InetSocketAddress(PORT));
+
         System.out.println("sever-->"+PORT);
 
     }

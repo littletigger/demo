@@ -9,6 +9,8 @@ import com.example.demo.mina.protocol.TestProtocolEncoder;
 import com.example.demo.mina.util.TxtToJson;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.json.JSONObject;
+import org.apache.mina.core.RuntimeIoException;
+import org.apache.mina.core.filterchain.IoFilterAdapter;
 import org.apache.mina.core.future.ConnectFuture;
 import org.apache.mina.core.service.IoConnector;
 import org.apache.mina.core.session.IdleStatus;
@@ -24,21 +26,49 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 @Slf4j
 public class MinaClient {
     private static String host = "127.0.0.1";
     private static int port = MinaConstant.HOST_PORT;
     /** 30秒后超时 */
-    private static final int IDELTIMEOUT = 30;
+    private static final int IDELTIMEOUT = 30000;
     /** 15秒发送一次心跳包 */
     private static final int HEARTBEATRATE = 5;
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
+        final Logger log = LoggerFactory.getLogger(MinaClient.class);
+
         IoSession session = null;
         IoConnector connector = new NioSocketConnector();
-        connector.setConnectTimeout(3000);
+        connector.getSessionConfig().setIdleTime(IdleStatus.BOTH_IDLE,10);
+        connector.getSessionConfig().setWriteTimeout(200);
+        connector.setConnectTimeoutMillis(IDELTIMEOUT); //设置连接超时
+//      断线重连回调拦截器
+        connector.getFilterChain().addFirst("reconnection", new IoFilterAdapter() {
+            @Override
+            public void sessionClosed(NextFilter nextFilter, IoSession session) throws Exception {
+                for (; ; ) {
+                    try {
+                        Thread.sleep(3000);
+                        ConnectFuture future = connector.connect();
+                        future.awaitUninterruptibly();// 等待连接创建成功
+                        session = future.getSession();// 获取会话
+                        if (session.isConnected()) {
+                            log.info("断线重连[" + connector.getDefaultRemoteAddress() + "成功");
+                            //session.close();
+                            break;
+                        }
+                    } catch (Exception ex) {
+                        log.info("重连服务器登录失败,3秒再连接一次:" + ex.getMessage());
+                    }
+                }
+            }
+        });
+
 
         //设置过滤器
         KeepAliveMessageFactory heartBeatFactory = new KeepAliveMessageFactoryImpl();
@@ -53,12 +83,29 @@ public class MinaClient {
 
         connector.getFilterChain().addLast("first", new ProtocolCodecFilter(new Test2ProtocolCodecFactory(Charset.forName("UTF-8"))));
         connector.getFilterChain().addLast("codec", new ProtocolCodecFilter(new TestProtocolCodecFactory(Charset.forName("UTF-8"))));
-       // connector.getFilterChain().addLast("heartbeat", heartBeat);
+        // connector.getFilterChain().addLast("heartbeat", heartBeat);
 
         connector.setHandler(new MyClientHandler());
-        ConnectFuture future = connector.connect(new InetSocketAddress(host, port));
-        future.awaitUninterruptibly();
-        session = future.getSession();
+
+        connector.getSessionConfig().setReadBufferSize(1024);   // 设置接收缓冲区的大小
+        connector.setDefaultRemoteAddress(new InetSocketAddress(host, port));
+        for (; ; ) {
+            try {
+                ConnectFuture future = connector.connect();
+                // 等待连接创建成功
+                future.awaitUninterruptibly();
+                // 获取会话
+                session = future.getSession();
+                log.error("连接服务端" + host + ":" + port + "[成功]" + ",,时间:" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
+
+                break;
+            } catch (RuntimeIoException e) {
+                log.error("连接服务端" + host + ":" + port + "失败" + ",时间:" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) + ", 连接MSG异常,请检查MSG端口、IP是否正确,MSG服务是否启动,异常内容:" + e.getMessage(), e);
+                Thread.sleep(5000);// 连接失败后,重连间隔5s
+            }
+
+
+
 
         /*PackageData pack = new PackageData();
         pack.setTarget("123456");
@@ -81,20 +128,23 @@ public class MinaClient {
         pack2.setBody(body2);
         session.write(pack2);
         System.out.println("发送完毕");*/
-        JSONObject json=TxtToJson.readTxtToJson("/home/fjkj/test.txt");
-        int msgId=(int)json.get("msgId");
-        int encryp=(int)json.get("encryp");
-        String target=(String)json.get("target");
-        String body=(String)json.get("body");
-        PackageData data=new PackageData();
-        data.setMsgId((short)msgId);
-        data.setEncryp((short)encryp);
-        data.setBody(body.getBytes());
-        data.setTarget(target);
-        session.write(data);
-       // session.write(data);
-        session.getCloseFuture().awaitUninterruptibly();
-        connector.dispose();
+           /* JSONObject json = TxtToJson.readTxtToJson("/home/fjkj/test.txt");
+            int msgId = (int) json.get("msgId");
+            int encryp = (int) json.get("encryp");
+            String target = (String) json.get("target");
+            String body = (String) json.get("body");
+            PackageData data = new PackageData();
+            data.setMsgId((short) msgId);
+            data.setEncryp((short) encryp);
+            data.setBody(body.getBytes());
+            data.setTarget(target);
+            session.write(data);
+            // session.write(data);
+            session.getCloseFuture().awaitUninterruptibly();
+            //connector.dispose();*/
+
+        }
+       // session.close();
 
     }
 
